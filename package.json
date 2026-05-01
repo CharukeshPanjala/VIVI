@@ -1,9 +1,24 @@
 {
-  "devDependencies": {
-    "prettier": "^3.8.3"
-  },
+  "name": "deutschme",
+  "version": "1.0.0",
+  "type": "module",
   "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:brain": "cd agents/brain && npm run dev",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:brain\"",
     "format": "prettier --write \"**/*.{ts,tsx,json,css}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,json,css}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,css}\"",
+    "lint": "eslint frontend/src agents/brain/src --ext .ts,.tsx",
+    "lint:fix": "eslint frontend/src agents/brain/src --ext .ts,.tsx --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "prettier": "^3.8.3"
   }
 }
