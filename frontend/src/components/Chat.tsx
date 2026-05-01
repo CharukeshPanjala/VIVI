@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
 } as const
 
 const DEFAULT_VOICE = 'Google Deutsch'
+const SPEAKING_INDICATOR_MS = 3000
 
 const WELCOME_MESSAGE: ChatMessage = {
   role: 'assistant',
@@ -78,8 +79,10 @@ const Chat: React.FC = () => {
   // ─── Refs ───────────────────────────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const selectedVoiceRef = useRef<string>(selectedVoice)
+  const speakingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ─── Speech ─────────────────────────────────────────────────────────────────
+
   const speak = useCallback((text: string, voiceOverride?: string) => {
     window.speechSynthesis.cancel()
 
@@ -102,7 +105,55 @@ const Chat: React.FC = () => {
     window.speechSynthesis.speak(utterance)
   }, [])
 
+  // Speaks only when voices are ready — no arbitrary timeouts
+  const speakWhenReady = useCallback(
+    (text: string, voiceOverride?: string) => {
+      const voices = window.speechSynthesis.getVoices()
+      if (voices.length > 0) {
+        speak(text, voiceOverride)
+      } else {
+        window.speechSynthesis.addEventListener(
+          'voiceschanged',
+          () => speak(text, voiceOverride),
+          { once: true }
+        )
+      }
+    },
+    [speak]
+  )
+
   // ─── Effects ────────────────────────────────────────────────────────────────
+
+  // Load available German voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis
+        .getVoices()
+        .filter((v) => v.lang.startsWith('de'))
+        .map((v) => v.name)
+
+      if (voices.length > 0) {
+        setAvailableVoices(voices)
+      }
+    }
+
+    loadVoices()
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices)
+
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', loadVoices)
+    }
+  }, [])
+
+  // Speak welcome message on first load only
+  useEffect(() => {
+    const isFirstMessage =
+      messages.length === 1 && messages[0].role === 'assistant'
+    if (isFirstMessage) {
+      speakWhenReady(messages[0].content)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -114,37 +165,11 @@ const Chat: React.FC = () => {
     localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages))
   }, [messages])
 
-  // Load available German voices
+  // Cleanup speaking timer on unmount
   useEffect(() => {
-    const loadVoices = () => {
-      const voices = window.speechSynthesis
-        .getVoices()
-        .filter((v) => v.lang.startsWith('de'))
-        .map((v) => v.name)
-      setAvailableVoices(voices)
+    return () => {
+      if (speakingTimerRef.current) clearTimeout(speakingTimerRef.current)
     }
-
-    loadVoices()
-    window.speechSynthesis.onvoiceschanged = loadVoices
-  }, [])
-
-  // Speak welcome message on first load
-  useEffect(() => {
-    const speakWelcome = () => {
-      const isFirstMessage =
-        messages.length === 1 && messages[0].role === 'assistant'
-      if (isFirstMessage) {
-        setTimeout(() => speak(messages[0].content), 500)
-      }
-    }
-
-    if (window.speechSynthesis.getVoices().length > 0) {
-      speakWelcome()
-    } else {
-      window.speechSynthesis.onvoiceschanged = speakWelcome
-    }
-    // Only run on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
@@ -175,8 +200,13 @@ const Chat: React.FC = () => {
 
         setMessages((prev) => [...prev, assistantMessage])
         setIsSpeaking(true)
-        speak(responseText)
-        setTimeout(() => setIsSpeaking(false), 3000)
+        speakWhenReady(responseText)
+
+        // Hide speaking indicator after response finishes
+        speakingTimerRef.current = setTimeout(
+          () => setIsSpeaking(false),
+          SPEAKING_INDICATOR_MS
+        )
       } catch (error) {
         const err = error as {
           response?: { data?: { error?: string } }
@@ -196,7 +226,7 @@ const Chat: React.FC = () => {
         setIsLoading(false)
       }
     },
-    [isLoading, messages, speak]
+    [isLoading, messages, speakWhenReady]
   )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -216,7 +246,7 @@ const Chat: React.FC = () => {
   const handleNewChat = () => {
     localStorage.removeItem(STORAGE_KEYS.MESSAGES)
     setMessages([NEW_CHAT_MESSAGE])
-    setTimeout(() => speak(NEW_CHAT_MESSAGE.content), 300)
+    speakWhenReady(NEW_CHAT_MESSAGE.content)
   }
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -236,9 +266,11 @@ const Chat: React.FC = () => {
         </div>
 
         <div style={styles.headerRight}>
-          <span style={styles.levelLabel}>Level</span>
-          <span style={styles.levelBadge}>A1 🌱</span>
-          <span style={styles.lessonCount}>47/66</span>
+          <div style={styles.levelInfo}>
+            <span style={styles.levelLabel}>Level</span>
+            <span style={styles.levelBadge}>A1 🌱</span>
+            <span style={styles.lessonCount}>47/66</span>
+          </div>
 
           <select
             value={selectedVoice}
@@ -364,9 +396,14 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    background: '#1a1a28',
-    padding: '8px 14px',
-    borderRadius: '20px',
+  },
+  levelInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    background: '#12121a',
+    padding: '4px 10px',
+    borderRadius: '12px',
     border: '1px solid #2a2a3a',
   },
   levelLabel: {
@@ -385,13 +422,17 @@ const styles = {
   voiceSelect: {
     background: '#1a1a28',
     border: '1px solid #2a2a3a',
-    borderRadius: '20px',
+    borderRadius: '12px',
     padding: '6px 12px',
     color: '#8888aa',
     fontSize: '12px',
     cursor: 'pointer',
     outline: 'none',
-    marginLeft: '8px',
+    minWidth: '120px',
+    maxWidth: '160px',
+    position: 'relative' as const,
+    zIndex: 100,
+    pointerEvents: 'auto' as const,
   },
   voiceOption: {
     background: '#1a1a28',
