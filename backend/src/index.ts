@@ -1,8 +1,9 @@
+import dotenv from 'dotenv'
+dotenv.config()
+
 import express from 'express'
 import cors from 'cors'
-import dotenv from 'dotenv'
-
-dotenv.config()
+import chatRouter from './routes/chat'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -16,6 +17,8 @@ app.get('/health', (req, res) => {
     message: 'DeutschMe backend is running! 🇩🇪' 
   })
 })
+
+app.use('/api/chat', chatRouter)
 
 app.listen(PORT, () => {
   console.log(`🇩🇪 DeutschMe backend running on port ${PORT}`)
