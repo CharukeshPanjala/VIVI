@@ -4,9 +4,8 @@ import Anthropic from '@anthropic-ai/sdk'
 console.log('API Key loaded:', !!process.env.ANTHROPIC_API_KEY)
 const router = express.Router()
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!
+  apiKey: process.env.ANTHROPIC_API_KEY!,
 })
-
 
 const DEUTSCHME_SYSTEM_PROMPT = `
 You are DeutschMe, Bobby's personal German language mentor. 
@@ -46,7 +45,7 @@ router.post('/message', async (req, res) => {
       return res.status(400).json({ error: 'Messages array required' })
     }
 
-    const systemPrompt = context 
+    const systemPrompt = context
       ? `${DEUTSCHME_SYSTEM_PROMPT}\n\nTODAY'S CONTEXT:\n${context}`
       : DEUTSCHME_SYSTEM_PROMPT
 
@@ -54,7 +53,7 @@ router.post('/message', async (req, res) => {
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       system: systemPrompt,
-      messages: messages
+      messages: messages,
     })
 
     const content = response.content[0]
@@ -64,12 +63,13 @@ router.post('/message', async (req, res) => {
 
     return res.json({
       message: content.text,
-      usage: response.usage
+      usage: response.usage,
     })
-
-  } catch (error) {
-    console.error('Claude API error:', error)
-    return res.status(500).json({ error: 'Failed to get response from Claude' })
+  } catch (error: any) {
+    console.error('Claude API error:', error?.message || error)
+    return res.status(500).json({
+      error: error?.message || 'Failed to get response from Claude',
+    })
   }
 })
 
