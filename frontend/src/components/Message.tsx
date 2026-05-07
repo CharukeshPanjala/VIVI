@@ -18,7 +18,7 @@ const Message: React.FC<MessageProps> = ({ role, content }) => {
 
       <div style={styles.bubble(isUser)}>{content}</div>
 
-      {isUser && <div style={styles.avatar.user}>B</div>}
+      {!isUser && <div style={styles.avatar.assistant}>A</div>}
     </div>
   )
 }

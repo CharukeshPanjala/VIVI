@@ -17,14 +17,14 @@ const SPEAKING_INDICATOR_MS = 3000
 const WELCOME_MESSAGE: ChatMessage = {
   role: 'assistant',
   content:
-    'Hallo Bobby! 👋 Willkommen bei DeutschMe!\n\nIch bin dein persönlicher Deutschlehrer. Ich bin hier, um dir zu helfen, Deutsch zu lernen! 🇩🇪\n\nWie geht es dir heute? Was hast du heute gelernt?',
+    'Hallo Bobby! 👋 Ich bin Anna, deine persönliche Deutschlehrerin!\n\nIch bin hier um dir zu helfen, Deutsch zu lernen und dein B2 Ziel zu erreichen! 🇩🇪\n\nWie geht es dir heute? Was möchtest du heute lernen?',
 }
 
 const NEW_CHAT_MESSAGE: ChatMessage = {
   role: 'assistant',
-  content: 'Hallo Bobby! 👋 Neue Unterhaltung! Wie geht es dir heute? 😊',
+  content:
+    'Hallo Bobby! 👋 Ich bin Anna! Neue Unterhaltung — wie geht es dir heute? 😊',
 }
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const loadMessages = (): ChatMessage[] => {
@@ -258,9 +258,9 @@ const Chat: React.FC = () => {
         <div style={styles.headerLeft}>
           <div style={styles.avatar}>🇩🇪</div>
           <div>
-            <div style={styles.appName}>DeutschMe</div>
+            <div style={styles.appName}>Anna 🇩🇪</div>
             <div style={styles.status}>
-              {isSpeaking ? '🔊 Speaking...' : '● Online'}
+              {isSpeaking ? '🔊 Anna spricht...' : '● Online'}
             </div>
           </div>
         </div>
@@ -315,8 +315,14 @@ const Chat: React.FC = () => {
 
       {/* Input */}
       <footer style={styles.inputArea}>
-        <VoiceButton onTranscript={sendMessage} disabled={isLoading} />
-
+        <VoiceButton
+          onTranscript={sendMessage}
+          disabled={isLoading}
+          onStartListening={() => {
+            console.log('cancelling speech')
+            window.speechSynthesis.cancel()
+          }}
+        />
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}

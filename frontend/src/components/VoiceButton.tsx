@@ -5,6 +5,7 @@ import React, { useState, useRef, useCallback } from 'react'
 interface VoiceButtonProps {
   onTranscript: (text: string) => void
   disabled: boolean
+  onStartListening?: () => void
 }
 
 interface SpeechRecognitionAlternative {
@@ -53,6 +54,7 @@ const MAX_RECORDING_MS = 30_000
 const VoiceButton: React.FC<VoiceButtonProps> = ({
   onTranscript,
   disabled,
+  onStartListening,
 }) => {
   // ─── State & Refs ──────────────────────────────────────────────────────────
   const [isListening, setIsListening] = useState(false)
@@ -98,7 +100,7 @@ const VoiceButton: React.FC<VoiceButtonProps> = ({
 
     recognition.onstart = () => {
       setIsListening(true)
-      // Auto-stop after 30 seconds
+      onStartListening?.()
       timeoutRef.current = setTimeout(stopListening, MAX_RECORDING_MS)
     }
 
