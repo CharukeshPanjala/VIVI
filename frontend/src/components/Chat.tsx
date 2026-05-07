@@ -40,7 +40,9 @@ const loadMessages = (): ChatMessage[] => {
 const cleanTextForSpeech = (text: string): string => {
   return (
     text
-      // Remove correction blocks
+      // Remove correction tags (new format)
+      .replace(/\[CORRECTION\].*?\[\/CORRECTION\]/gs, '')
+      // Remove old correction block formats (cleanup)
       .replace(/(?:Eine kleine |Kleine )?Korrektur:[\s\S]*?---/g, '')
       .replace(/❌[\s\S]*?✅[^\n]*/g, '')
       .replace(
@@ -319,7 +321,6 @@ const Chat: React.FC = () => {
           onTranscript={sendMessage}
           disabled={isLoading}
           onStartListening={() => {
-            console.log('cancelling speech')
             window.speechSynthesis.cancel()
           }}
         />

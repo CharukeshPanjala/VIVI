@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,6 +60,11 @@ const VoiceButton: React.FC<VoiceButtonProps> = ({
   const [isListening, setIsListening] = useState(false)
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const onStartListeningRef = useRef(onStartListening)
+
+  useEffect(() => {
+    onStartListeningRef.current = onStartListening
+  }, [onStartListening])
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -100,10 +105,9 @@ const VoiceButton: React.FC<VoiceButtonProps> = ({
 
     recognition.onstart = () => {
       setIsListening(true)
-      onStartListening?.()
+      onStartListeningRef.current?.()
       timeoutRef.current = setTimeout(stopListening, MAX_RECORDING_MS)
     }
-
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       const transcript = Array.from(
         { length: event.results.length },
