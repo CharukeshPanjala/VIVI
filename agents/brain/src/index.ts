@@ -17,7 +17,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     agent: 'brain',
-    message: 'DeutschMe Brain Agent is running! 🧠',
+    message: 'Vivi Brain Agent is running! 🧠',
     timestamp: new Date().toISOString(),
   })
 })
@@ -25,5 +25,5 @@ app.get('/health', (req, res) => {
 app.use('/api/chat', chatRouter)
 
 app.listen(PORT, () => {
-  console.log(`🧠 DeutschMe Brain Agent running on port ${PORT}`)
+  console.log(`🧠 Vivi Brain Agent running on port ${PORT}`)
 })
