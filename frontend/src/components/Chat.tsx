@@ -7,8 +7,8 @@ import VoiceButton from './VoiceButton'
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STORAGE_KEYS = {
-  MESSAGES: 'deutschme_messages',
-  VOICE: 'deutschme_voice',
+  MESSAGES: 'vivi_messages',
+  VOICE: 'vivi_voice',
 } as const
 
 const DEFAULT_VOICE = 'Google Deutsch'
