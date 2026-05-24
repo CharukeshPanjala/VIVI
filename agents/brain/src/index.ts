@@ -1,9 +1,11 @@
+import './types'
 import dotenv from 'dotenv'
 dotenv.config()
 
 import express from 'express'
 import cors from 'cors'
 import chatRouter from './routes/chat'
+import usersRouter from './routes/users'
 import { requestLogger } from './middleware/logger'
 
 const app = express()
@@ -23,6 +25,7 @@ app.get('/health', (req, res) => {
 })
 
 app.use('/api/chat', chatRouter)
+app.use('/api/users', usersRouter)
 
 app.listen(PORT, () => {
   console.log(`🧠 Vivi Brain Agent running on port ${PORT}`)
