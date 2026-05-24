@@ -1,21 +1,24 @@
 import React from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useClerk, useUser } from '@clerk/clerk-react'
 import { tokens } from '../styles/tokens'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { to: '/chat',     icon: '💬', label: 'Chat'     },
-  { to: '/lessons',  icon: '📺', label: 'Lessons'  },
-  { to: '/cards',    icon: '🃏', label: 'Cards'    },
+  { to: '/chat', icon: '💬', label: 'Chat' },
+  { to: '/lessons', icon: '📺', label: 'Lessons' },
+  { to: '/cards', icon: '🃏', label: 'Cards' },
   { to: '/progress', icon: '📈', label: 'Progress' },
-  { to: '/notes',    icon: '📝', label: 'Notes'    },
+  { to: '/notes', icon: '📝', label: 'Notes' },
 ] as const
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const Layout: React.FC = () => {
   const location = useLocation()
+  const { signOut } = useClerk()
+  const { user } = useUser()
 
   return (
     <div style={styles.root}>
@@ -31,7 +34,12 @@ const Layout: React.FC = () => {
             const active = location.pathname === to
             return (
               <NavLink key={to} to={to} style={{ textDecoration: 'none' }}>
-                <div style={{ ...styles.navItem, ...(active ? styles.navItemActive : {}) }}>
+                <div
+                  style={{
+                    ...styles.navItem,
+                    ...(active ? styles.navItemActive : {}),
+                  }}
+                >
                   <span style={styles.navIcon}>{icon}</span>
                   <span style={styles.navLabel}>{label}</span>
                 </div>
@@ -39,6 +47,17 @@ const Layout: React.FC = () => {
             )
           })}
         </nav>
+        <div style={styles.userSection}>
+          <div style={styles.userInfo}>
+            <span style={styles.userName}>{user?.firstName ?? 'You'}</span>
+            <span style={styles.userEmail}>
+              {user?.primaryEmailAddress?.emailAddress}
+            </span>
+          </div>
+          <button style={styles.signOutBtn} onClick={() => signOut()}>
+            Sign out
+          </button>
+        </div>
       </aside>
 
       {/* Main content */}
@@ -51,8 +70,14 @@ const Layout: React.FC = () => {
         {NAV_ITEMS.map(({ to, icon, label }) => {
           const active = location.pathname === to
           return (
-            <NavLink key={to} to={to} style={{ textDecoration: 'none', flex: 1 }}>
-              <div style={{ ...styles.tab, ...(active ? styles.tabActive : {}) }}>
+            <NavLink
+              key={to}
+              to={to}
+              style={{ textDecoration: 'none', flex: 1 }}
+            >
+              <div
+                style={{ ...styles.tab, ...(active ? styles.tabActive : {}) }}
+              >
                 <span style={styles.tabIcon}>{icon}</span>
                 <span style={styles.tabLabel}>{label}</span>
               </div>
@@ -169,6 +194,42 @@ const styles = {
   tabLabel: {
     fontSize: '10px',
     fontWeight: 500,
+  },
+  userSection: {
+    marginTop: 'auto',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '8px',
+    padding: '12px 8px',
+    borderTop: `1px solid ${colors.border.default}`,
+  },
+  userInfo: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '2px',
+  },
+  userName: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: colors.text.primary,
+  },
+  userEmail: {
+    fontSize: '11px',
+    color: colors.text.muted,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+  },
+  signOutBtn: {
+    background: 'transparent',
+    border: `1px solid ${colors.border.default}`,
+    borderRadius: '8px',
+    color: colors.text.secondary,
+    fontSize: '12px',
+    padding: '6px 12px',
+    cursor: 'pointer',
+    textAlign: 'center' as const,
+    width: '100%',
   },
 } as const
 
