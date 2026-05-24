@@ -1,0 +1,524 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Level {
+  A1_1
+  A1_2
+  A2_1
+  A2_2
+  B1_1
+  B1_2
+  B2_1
+  B2_2
+  C1_1
+  C1_2
+  C2_1
+  C2_2
+}
+
+enum Tier {
+  FREE
+  PRO
+}
+
+enum SessionType {
+  SOLO
+  GROUP
+  STORY
+  WATCH_PARTY
+}
+
+enum Role {
+  USER
+  ASSISTANT
+}
+
+enum Severity {
+  MINOR
+  NOTABLE
+  CRITICAL
+}
+
+enum SourceType {
+  CHAT
+  LESSON
+  MANUAL
+}
+
+enum CardStatus {
+  NEW
+  LEARNING
+  MASTERED
+}
+
+enum NoteType {
+  CHAT
+  LESSON
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  TRIALING
+}
+
+enum XPReason {
+  SESSION_COMPLETED
+  LESSON_COMPLETED
+  STREAK_BONUS
+  MILESTONE
+  VOCAB_MASTERED
+  PERFECT_SESSION
+}
+
+enum NotificationType {
+  STREAK_REMINDER
+  LEVEL_UP
+  REVIEW_DUE
+  MILESTONE_REACHED
+  COACH_REPORT_READY
+  DIGEST_READY
+  ACHIEVEMENT_UNLOCKED
+}
+
+enum MessageType {
+  MISSING_YOU
+  WORLD_EVENT
+  NEWS
+  REDDIT
+  INSTAGRAM
+  FACEBOOK
+  X_TWITTER
+  TIKTOK
+  YOUTUBE
+  PODCAST
+  BOOK
+  MUSIC
+  SPORT
+  FOOD
+  TRAVEL
+  TECHNOLOGY
+  CULTURE
+  LANGUAGE_TIP
+  MEME
+  PERSONAL_THOUGHT
+  MOVIE_TV
+  WEATHER
+  MILESTONE_APPROACHING
+  RANDOM
+}
+
+// ============================================
+// CORE LEARNING
+// ============================================
+
+model User {
+  id                   String    @id @default(cuid())
+  clerkId              String    @unique
+  email                String    @unique
+  name                 String?
+  nativeLanguage       String    @default("en")
+  targetLanguage       String    @default("de")
+  level                Level     @default(A1_1)
+  goals                String[]
+  totalXP              Int       @default(0)
+  currentStreak        Int       @default(0)
+  longestStreak        Int       @default(0)
+  lastActiveDate       DateTime?
+  tier                 Tier      @default(FREE)
+  isSuperUser          Boolean   @default(false)
+  stripeCustomerId     String?
+  lastWatchedLessonId  String?
+  lastWatchedAt        DateTime?
+  onboardingCompleted  Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  sessions         Session[]
+  mistakes         Mistake[]
+  vocabCards       VocabCard[]
+  lessons          Lesson[]
+  userLessons      UserLesson[]
+  notes            Note[]
+  coachReports     CoachReport[]
+  weeklyDigests    WeeklyDigest[]
+  awayMessages     AwayMessage[]
+  xpTransactions   XPTransaction[]
+  notifications    Notification[]
+  userMemory       UserMemory?
+  characterMemories    CharacterMemory[]
+  characterEmotions    CharacterEmotionalState[]
+  subscription     Subscription?
+}
+
+model Session {
+  id          String      @id @default(cuid())
+  userId      String
+  characterId String
+  sessionType SessionType @default(SOLO)
+  topic       String?
+  xpEarned    Int         @default(0)
+  summary     String?
+  startedAt   DateTime    @default(now())
+  endedAt     DateTime?
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+  mistakes Mistake[]
+  notes    Note[]
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  sessionId   String
+  characterId String?
+  role        Role
+  content     String
+  expression  String?
+  createdAt   DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model Mistake {
+  id          String   @id @default(cuid())
+  userId      String
+  sessionId   String
+  original    String
+  corrected   String
+  explanation String
+  topic       String?
+  severity    Severity @default(NOTABLE)
+  practiced   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model VocabCard {
+  id              String     @id @default(cuid())
+  userId          String
+  word            String
+  translation     String
+  exampleSentence String?
+  sourceType      SourceType @default(CHAT)
+  sourceId        String?
+  interval        Int        @default(1)
+  repetitions     Int        @default(0)
+  easinessFactor  Float      @default(2.5)
+  nextReviewDate  DateTime   @default(now())
+  status          CardStatus @default(NEW)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Lesson {
+  id            String   @id @default(cuid())
+  userId        String
+  videoUrl      String
+  videoTitle    String
+  thumbnail     String?
+  summary       String[]
+  vocabWords    Json
+  grammarPoints String[]
+  questions     Json
+  level         Level
+  language      String   @default("de")
+  createdAt     DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userLessons UserLesson[]
+  notes       Note[]
+}
+
+model UserLesson {
+  id              String    @id @default(cuid())
+  userId          String
+  lessonId        String
+  completed       Boolean   @default(false)
+  completedAt     DateTime?
+  watchedSeconds  Int       @default(0)
+  duration        Int?
+  vocabExtracted  Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  type      NoteType
+  lessonId  String?
+  sessionId String?
+  title     String
+  content   Json
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson  Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  session Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+}
+
+// ============================================
+// MEMORY & INTELLIGENCE
+// ============================================
+
+model UserMemory {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  summary            String
+  personalDetails    Json     @default("{}")
+  milestones         Json     @default("[]")
+  learningStyle      String?
+  motivations        String[]
+  personality        String?
+  struggles          String[]
+  strengths          String[]
+  currentFocus       String?
+  lifeContext        Json     @default("{}")
+  interests          String[]
+  emotionalPatterns  String?
+  languageAnxiety    String?
+  communicationStyle String?
+  practicePattern    String?
+  lastSeenAt         DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CharacterMemory {
+  id                      String   @id @default(cuid())
+  userId                  String
+  characterId             String
+  bondLevel               Int      @default(1)
+  bondSummary             String?
+  lastConversationSummary String?
+  firstMeetMemory         String?
+  insideJokes             String[]
+  memorableMoments        String[]
+  currentEmotion          String?
+  currentEmotionReason    String?
+  characterOpinionOfUser  String?
+  currentWorry            String?
+  currentPride            String?
+  sharedTopics            String[]
+  relationshipStage       String?
+  howCharacterTalksToUser String?
+  unspokenThings          String?
+  growthWitnessed         String[]
+  rituals                 String[]
+  missYouThreshold        Int      @default(3)
+  characterMood           String?
+  lastGift                String?
+  protectiveLevel         Int      @default(5)
+  lastSeenAt              DateTime?
+  updatedAt               DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, characterId])
+}
+
+model CharacterEmotionalState {
+  id                  String   @id @default(cuid())
+  userId              String
+  characterId         String
+  currentEmotion      String?
+  emotionReason       String?
+  personalityRead     String?
+  currentWorry        String?
+  currentPride        String?
+  energyLevel         String?
+  hopeForNextSession  String?
+  disappointment      String?
+  excitementLevel     Int      @default(5)
+  missYouMessage      String?
+  lastEmotionUpdate   String?
+  emotionHistory      Json     @default("[]")
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, characterId])
+}
+
+model CharacterDailyLife {
+  id                String   @id @default(cuid())
+  characterId       String
+  date              DateTime
+  mood              String
+  moodReason        String
+  morningActivity   String?
+  afternoonActivity String?
+  eveningActivity   String?
+  highlight         String
+  thought           String?
+  characterInteraction String?
+  worldEvent        String?
+  weather           String?
+  lessonLearned     String?
+  recommendation    String?
+  weekendPlan       String?
+  upcomingEvent     String?
+  longTermPlan      String?
+  currentGoal       String?
+  excitement        String?
+  concern           String?
+  recentTravel      String?
+  tradition         String?
+  yearEndPlan       String?
+  currentObsession  String?
+
+  @@unique([characterId, date])
+}
+
+// ============================================
+// ENGAGEMENT
+// ============================================
+
+model AwayMessage {
+  id              String      @id @default(cuid())
+  userId          String
+  characterId     String
+  message         String
+  messageType     MessageType
+  platform        String?
+  contentCategory String?
+  mediaUrl        String?
+  mediaTitle      String?
+  trendingScore   Int?
+  isRandom        Boolean     @default(false)
+  emotion         String?
+  requiresResponse Boolean    @default(false)
+  expiresAt       DateTime?
+  trigger         String
+  createdAt       DateTime    @default(now())
+  readAt          DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CoachReport {
+  id                  String   @id @default(cuid())
+  userId              String
+  weekSummary         String
+  strongPoints        String[]
+  focusAreas          String[]
+  mistakePatterns     Json     @default("{}")
+  recommendedLesson   String?
+  mistakeToFix        String?
+  motivationalNote    String
+  honestFeedback      String
+  xpThisWeek          Int
+  sessionsThisWeek    Int
+  streakStatus        String
+  nextWeekGoal        String
+  levelProgress       String?
+  bestSession         String?
+  hardestMoment       String?
+  comparedToLastWeek  String?
+  characterInsights   Json     @default("{}")
+  realWorldChallenge  String?
+  podcastRecommendation String?
+  grammarFocus        String?
+  celebrationMoment   String?
+  progressChart       Json     @default("{}")
+  vocabularyStats     Json     @default("{}")
+  createdAt           DateTime @default(now())
+  readAt              DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WeeklyDigest {
+  id                  String   @id @default(cuid())
+  userId              String
+  daysActive          Int
+  xpEarned            Int
+  wordsLearned        Int
+  vocabMastered       Int
+  sessionCount        Int
+  totalTimeSpent      Int
+  averageSessionLength Int
+  topCharacter        String?
+  longestSession      Int?
+  bestDay             String?
+  bestTimeOfDay       String?
+  streakStatus        String?
+  mistakesFixed       Int      @default(0)
+  characterMessages   Json     @default("{}")
+  weekHighlight       String?
+  personalityInsight  String?
+  weekRating          String?
+  globalRank          String?
+  improvedSkills      String[]
+  funFact             String?
+  nextMilestone       String?
+  quote               String?
+  nextWeekPreview     String?
+  characterNote       String
+  createdAt           DateTime @default(now())
+  readAt              DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model XPTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  reason    XPReason
+  sourceId  String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// MONETISATION
+// ============================================
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  stripeCustomerId     String    @unique
+  stripeSubscriptionId String    @unique
+  status               SubStatus
+  currentPeriodEnd     DateTime
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
